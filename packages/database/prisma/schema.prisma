@@ -43,18 +43,21 @@ enum CourseStatus {
 // ---- Models ----
 
 model User {
-  id        Int        @id @default(autoincrement())
-  username  String     @unique
-  password  String
-  nickname  String
-  avatar    String
-  role      Role       @default(STUDENT)
-  status    UserStatus @default(ACTIVE)
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
-  courses   Course[]
-
-  @@map("users")
+  id              Int               @id @default(autoincrement())
+  username        String            @unique
+  password        String
+  nickname        String
+  avatar          String
+  role            Role              @default(STUDENT)
+  status          UserStatus        @default(ACTIVE)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  // Relation
+  taughtCourses   Course[]          @relation("TeacherCourses")
+  enrollments     Enrollment[]
+  chapterProgress ChapterProgress[]
+  post            Post[]
+  comments        Comment[]
 }
 
 model InviteCode {
@@ -64,35 +67,44 @@ model InviteCode {
   createdBy Int?      @map("created_by")
   expiresAt DateTime? @map("expires_at")
   createdAt DateTime  @default(now()) @map("created_at")
-
-  @@map("invite_codes")
 }
 
 model Course {
-  id          Int          @id @default(autoincrement())
-  title       String
-  description String?      @db.Text
-  coverImage  String?      @map("cover_image")
-  type        CourseType   @default(PUBLIC)
-  status      CourseStatus @default(DRAFT)
-  banReason   String?      @map("ban_reason")
-  teacherId   Int          @map("teacher_id")
-  createdAt   DateTime     @map("created_at")
-  updatedAt   DateTime     @map("updated_at")
-  user        User?        @relation(fields: [userId], references: [id])
-  userId      Int?
+  id              Int               @id @default(autoincrement())
+  title           String
+  description     String?           @db.Text
+  coverImage      String?           @map("cover_image")
+  type            CourseType        @default(PUBLIC)
+  status          CourseStatus      @default(DRAFT)
+  banReason       String?           @map("ban_reason")
+  teacherId       Int               @map("teacher_id")
+  createdAt       DateTime          @map("created_at")
+  updatedAt       DateTime          @map("updated_at")
+  // Relation
+  teacher         User              @relation("TeacherCourses", fields: [teacherId], references: [id])
+  chapters        Chapter[]
+  enrollments     Enrollment[]
+  chapterProgress ChapterProgress[]
+  posts           Post[]
 }
 
 model Chapter {
-  id           Int     @id @default(autoincrement())
-  title        String
-  content      String? @db.Text
-  videoUrl     String? @map("video_url")
-  resourceUrl  String? @map("resource_url")
-  resourceName String? @map("resource_name")
-  order        Int     @default(0)
-  courseId     Int     @map("course_id")
-  parentId     Int?    @map("parent_id")
+  id                      Int               @id @default(autoincrement())
+  title                   String
+  content                 String?           @db.Text
+  videoUrl                String?           @map("video_url")
+  resourceUrl             String?           @map("resource_url")
+  resourceName            String?           @map("resource_name")
+  order                   Int               @default(0)
+  courseId                Int               @map("course_id")
+  parentId                Int?              @map("parent_id")
+  // Relation
+  course                  Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  parent                  Chapter?          @relation("ChapterHierarchy", fields: [parentId], references: [id])
+  children                Chapter[]         @relation("ChapterHierarchy")
+  enrollmentsWithLastView Enrollment[]
+  progress                ChapterProgress[]
+  posts                   Post[]
 }
 
 model Enrollment {
@@ -104,6 +116,10 @@ model Enrollment {
   joinedAt       DateTime  @default(now()) @map("joined_at")
   lastChapterId  Int?      @map("last_chapter_id")
   lastAccessedAt DateTime? @default(now()) @map("last_accessed_at")
+  // Relation
+  student        User      @relation(fields: [studentId], references: [id])
+  course         Course    @relation(fields: [courseId], references: [id])
+  lastChapter    Chapter?  @relation(fields: [lastChapterId], references: [id])
 }
 
 model ChapterProgress {
@@ -114,20 +130,29 @@ model ChapterProgress {
   isCompleted Boolean  @default(false) @map("is_completed")
   progress    Int      @default(0)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  // Relation
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter     Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
   @@unique([userId, chapterId])
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   title     String
-  content   String   @db.Text
-  published Boolean  @default(true)
-  authorId  Int      @map("author_id")
-  courseId  Int?     @map("course_id")
-  chapterId Int?     @map("chapter_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  content   String    @db.Text
+  published Boolean   @default(true)
+  authorId  Int       @map("author_id")
+  courseId  Int?      @map("course_id")
+  chapterId Int?      @map("chapter_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  // Relation
+  author    User      @relation(fields: [authorId], references: [id])
+  course    Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter   Chapter?  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  comments  Comment[]
 }
 
 model Comment {
@@ -136,4 +161,7 @@ model Comment {
   authorId  Int      @map("author_id")
   postId    Int      @map("post_id")
   createdAt DateTime @default(now()) @map("created_at")
+  // Relation
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
