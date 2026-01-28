@@ -58,6 +58,8 @@ model User {
   chapterProgress ChapterProgress[]
   post            Post[]
   comments        Comment[]
+
+  @@map("users")
 }
 
 model InviteCode {
