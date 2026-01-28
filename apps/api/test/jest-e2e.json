@@ -4,6 +4,21 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
-  }
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "target": "es2021",
+          "moduleResolution": "node",
+          "esModuleInterop": true,
+          "resolvePackageJsonExports": false
+        }
+      }
+    ]
+  },
+  "moduleNameMapper": {
+    "^@repo/db$": "<rootDir>/../../../packages/database/src/index.ts"
+  },
+  "transformIgnorePatterns": ["/node_modules/(?!(@prisma|@repo)/)"]
 }
